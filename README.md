@@ -18,6 +18,7 @@ Inspired by the idea of Tony Stark’s JARVIS — **not** a copy of any movie as
 - Optional **server-side AI proxy** (no private API keys in the browser)
 - Settings: assistant name, language (English / Telugu where the engine allows), voice
 - Conversation history in `localStorage` + export JSON
+- Mission Control focus board: persistent tasks, due dates, priority levels, overdue status, progress, and task filters
 - Progressive Web App (manifest, service worker, installable)
 - GitHub Actions: typecheck, lint, test, build, deploy to GitHub Pages
 

@@ -31,6 +31,10 @@ export function speak(
     options.onend?.()
     return
   }
+  if (typeof SpeechSynthesisUtterance === 'undefined') {
+    options.onend?.()
+    return
+  }
   window.speechSynthesis.cancel()
   const u = new SpeechSynthesisUtterance(text)
   u.rate = options.rate ?? 1

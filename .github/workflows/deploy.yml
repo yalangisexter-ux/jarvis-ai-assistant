@@ -25,7 +25,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: npm
 
       - name: Install dependencies
         run: npm install
@@ -42,8 +41,6 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          # Optional: set repository Variables or Secrets and map here.
-          # Do NOT inject private AI API keys into the frontend build.
           VITE_AI_ENDPOINT: ${{ vars.VITE_AI_ENDPOINT }}
           VITE_AI_PROVIDER: ${{ vars.VITE_AI_PROVIDER }}
 

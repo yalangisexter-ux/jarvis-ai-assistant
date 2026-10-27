@@ -1,5 +1,6 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { AssistantStatus, Message, QuickAction } from './types'
+import FocusPanel from './components/FocusPanel'
 import { useSettings } from './hooks/useSettings'
 import { useSpeechRecognition } from './hooks/useSpeechRecognition'
 import { requestAI, getAIConfig } from './lib/ai'
@@ -348,6 +349,8 @@ export default function App() {
               ))}
             </div>
           </section>
+
+          <FocusPanel />
 
           <section className="panel">
             <div className="label">Limits</div>

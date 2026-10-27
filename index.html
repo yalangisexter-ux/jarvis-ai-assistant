@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07111f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="JARVIS">
+<meta name="description" content="A voice-first personal assistant interface for iPhone.">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icon.svg">
+<title>JARVIS — Personal AI Interface</title>
+<style>
+:root{color-scheme:dark;--bg:#06101d;--panel:rgba(14,30,49,.78);--line:rgba(103,207,255,.24);--cyan:#66e1ff;--text:#edf8ff;--muted:#9cb5c9}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% 10%,#173a56 0%,#091829 40%,#040a12 100%);color:var(--text);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:env(safe-area-inset-top) 16px env(safe-area-inset-bottom)}
+main{max-width:760px;margin:0 auto;padding:24px 0 32px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{letter-spacing:.24em;font-weight:800;color:var(--cyan);font-size:1.1rem}.status{font-size:.78rem;color:#a9f6d1;border:1px solid #2e7866;border-radius:99px;padding:5px 10px}
+h1{font-size:clamp(2rem,8vw,3.5rem);line-height:1.05;letter-spacing:-.04em;margin:34px 0 8px}.sub{color:var(--muted);margin:0 0 24px}.orb-wrap{display:grid;place-items:center;padding:12px 0 24px}.orb{width:164px;height:164px;border-radius:50%;border:1px solid rgba(102,225,255,.65);background:radial-gradient(circle at 50% 45%,rgba(69,202,255,.28),rgba(12,50,77,.2) 48%,rgba(4,15,27,.95) 72%);box-shadow:0 0 35px #2a9ecb44,inset 0 0 30px #50d7ff33;display:grid;place-items:center;position:relative}.orb:before,.orb:after{content:"";position:absolute;border:1px solid #66e1ff55;border-radius:50%;inset:-12px;animation:pulse 3s infinite}.orb:after{inset:-24px;animation-delay:1.5s}.orb.listening{box-shadow:0 0 55px #53dfff88,inset 0 0 35px #50d7ff55}.orb span{font-size:2rem;color:var(--cyan);letter-spacing:.12em;font-weight:300}@keyframes pulse{0%{transform:scale(.94);opacity:.65}100%{transform:scale(1.12);opacity:0}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:18px;margin:12px 0;backdrop-filter:blur(16px);box-shadow:0 12px 35px #0003}.label{font-size:.76rem;color:var(--cyan);letter-spacing:.16em;text-transform:uppercase;margin-bottom:8px}.response{min-height:54px;white-space:pre-wrap;overflow-wrap:anywhere}.controls{display:grid;grid-template-columns:1fr 1fr;gap:10px}.btn{border:1px solid var(--line);background:#102941;color:var(--text);padding:14px 12px;border-radius:14px;font:inherit;font-weight:650;cursor:pointer}.btn.primary{background:linear-gradient(135deg,#117b9e,#1551a0);border-color:#66e1ff88}.btn:active{transform:scale(.98)}.inputrow{display:flex;gap:8px}.inputrow input{min-width:0;flex:1;background:#071522;border:1px solid var(--line);border-radius:12px;color:var(--text);padding:13px;font:inherit}.small{font-size:.84rem;color:var(--muted)}.quick{display:flex;flex-wrap:wrap;gap:8px}.chip{background:#0a1c2c;border:1px solid var(--line);border-radius:99px;padding:8px 12px;color:#d9f5ff;cursor:pointer;font:inherit;font-size:.88rem}.foot{font-size:.78rem;color:#8ba3b7;text-align:center;margin:24px 8px 0}button:focus-visible,input:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}@media(min-width:620px){.orb{width:190px;height:190px}.panel{padding:22px}}
+</style>
+</head>
+<body>
+<main>
+<header class="top"><div class="brand">J.A.R.V.I.S.</div><div class="status" id="status">SYSTEM READY</div></header>
+<h1>At your<br>command.</h1>
+<p class="sub">Your voice-first personal assistant interface.</p>
+<div class="orb-wrap"><div class="orb" id="orb"><span>J</span></div></div>
+<section class="panel"><div class="label">Assistant response</div><div class="response" id="response" aria-live="polite">Hello. JARVIS interface is online. Tap “Start listening” and give me a command.</div></section>
+<section class="panel"><div class="label">Voice controls</div><div class="controls"><button class="btn primary" id="listen">🎙 Start listening</button><button class="btn" id="stop">■ Stop</button><button class="btn" id="speak">🔊 Repeat response</button><button class="btn" id="quiet">🔇 Mute voice</button></div><p class="small" id="heard">Heard: —</p></section>
+<section class="panel"><div class="label">Type a command</div><form class="inputrow" id="commandForm"><input id="command" autocomplete="off" placeholder="Try “What time is it?”" aria-label="Command"><button class="btn primary" type="submit">Send</button></form></section>
+<section class="panel"><div class="label">Quick commands</div><div class="quick"><button class="chip" data-command="What time is it?">Time</button><button class="chip" data-command="What can you do?">Help</button><button class="chip" data-command="Open YouTube">Open YouTube</button><button class="chip" data-command="Open ChatGPT">Open ChatGPT</button><button class="chip" data-command="Tell me a joke">Tell a joke</button></div></section>
+<section class="panel"><div class="label">Important limits</div><p class="small">This is a web-based assistant prototype. Microphone access requires permission and may need the page to be open. Opening websites works; controlling other apps, changing protected settings, or unlocking your iPhone by voice is not available to a normal website.</p></section>
+<p class="foot">JARVIS prototype · Built for iPhone Safari · No API key configured</p>
+</main>
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+let recognition=null,lastResponse="Hello. JARVIS interface is online.",muted=false;
+function setStatus(s){$("status").textContent=s}
+function say(text){lastResponse=text;$("response").textContent=text;if(!muted&&"speechSynthesis"in window){window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.rate=1;u.pitch=.92;window.speechSynthesis.speak(u)}}
+function handle(raw){
+const q=raw.trim(),s=q.toLowerCase();if(!q)return;
+$("command").value="";$("heard").textContent="Heard: "+q;
+if(/^(hi|hello|hey jarvis|hey)$/.test(s)){say("Hello. I'm ready. What would you like me to do?");return}
+if(s.includes("time")){say("The current time on this device is "+new Date().toLocaleTimeString([], {hour:"numeric",minute:"2-digit"})+".");return}
+if(s.includes("date")||s.includes("today")){say("Today is "+new Date().toLocaleDateString(undefined,{weekday:"long",year:"numeric",month:"long",day:"numeric"})+".");return}
+if(s.includes("what can you do")||s==="help"){say("I can answer a few built-in commands, speak responses, tell the time and date, and open selected websites. This prototype does not have a connected AI model yet.");return}
+if(s.includes("joke")){say("Why do programmers prefer dark mode? Because light attracts bugs.");return}
+if(s.includes("open youtube")){say("Opening YouTube.");window.open("https://www.youtube.com/","_blank","noopener");return}
+if(s.includes("open chatgpt")){say("Opening ChatGPT.");window.open("https://chatgpt.com/","_blank","noopener");return}
+if(s.includes("open github")){say("Opening GitHub.");window.open("https://github.com/","_blank","noopener");return}
+if(s.includes("stop talking")||s==="stop"){if("speechSynthesis"in window)window.speechSynthesis.cancel();say("Voice stopped.");return}
+say("I heard: "+q+". This prototype is not connected to an AI service yet. You can add a secure backend later; never put an API key in this public web app.");
+}
+function start(){
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(!SR){say("Voice recognition is not supported in this browser or device configuration. Please use the text command box, or try Safari after allowing microphone access.");setStatus("TEXT MODE");return}
+try{if(recognition){recognition.onend=null;recognition.stop()}recognition=new SR();recognition.lang="en-US";recognition.interimResults=false;recognition.maxAlternatives=1;
+recognition.onstart=()=>{setStatus("LISTENING");$("orb").classList.add("listening");$("listen").textContent="Listening…"};
+recognition.onresult=e=>handle(e.results[0][0].transcript);
+recognition.onerror=e=>{setStatus("VOICE ISSUE");say(e.error==="not-allowed"?"Microphone permission was denied. Allow microphone access in your browser settings.":"Voice input issue: "+e.error+". You can type commands instead.")};
+recognition.onend=()=>{setStatus("SYSTEM READY");$("orb").classList.remove("listening");$("listen").textContent="🎙 Start listening"};
+recognition.start()}catch(e){setStatus("SYSTEM READY");say("I couldn't start voice input. Please try again or type your command.")}
+}
+$("listen").addEventListener("click",start);
+$("stop").addEventListener("click",()=>{if(recognition){try{recognition.stop()}catch(e){}}if("speechSynthesis"in window)window.speechSynthesis.cancel();$("orb").classList.remove("listening");$("listen").textContent="🎙 Start listening";setStatus("SYSTEM READY")});
+$("speak").addEventListener("click",()=>{if("speechSynthesis"in window){window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(lastResponse);u.pitch=.92;window.speechSynthesis.speak(u)}});
+$("quiet").addEventListener("click",()=>{muted=!muted;$("quiet").textContent=muted?"🔊 Enable voice":"🔇 Mute voice";if(muted&&"speechSynthesis"in window)window.speechSynthesis.cancel();});
+$("commandForm").addEventListener("submit",e=>{e.preventDefault();handle($("command").value)});
+document.querySelectorAll("[data-command]").forEach(b=>b.addEventListener("click",()=>handle(b.getAttribute("data-command"))));
+if("serviceWorker"in navigator&&location.protocol!=="file:"){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}))}
+})();
+</script>
+</body>
+</html>

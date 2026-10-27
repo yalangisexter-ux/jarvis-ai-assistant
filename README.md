@@ -1,50 +1,123 @@
 # JARVIS AI Assistant
 
-A lightweight, voice-first web assistant prototype designed for iPhone Safari.
+Personal voice-first AI assistant web app optimized for **iPhone 15 Plus** (Safari + PWA).
 
-## Current capabilities
+Inspired by the idea of Tony Stark’s JARVIS — **not** a copy of any movie assets, logos, or proprietary implementations.
 
-- Responsive dark JARVIS-style interface.
-- Browser speech recognition when supported and permitted.
-- Spoken responses using the browser's speech synthesis.
-- Built-in demo commands for time, date, jokes, and opening selected websites.
-- PWA manifest and an offline application shell.
+**Live (after GitHub Pages is enabled):**  
+`https://yalangisexter-ux.github.io/jarvis-ai-assistant/`
 
-## Important limitations
+---
 
-This repository currently contains a **front-end prototype**, not a full AI assistant. It does not yet connect to an AI model. Unrecognized commands receive a notice explaining this. Do not put provider API keys in `index.html`, any other browser code, or public repository files.
+## Features
 
-A normal iOS web app cannot unlock the iPhone, bypass Face ID, or control arbitrary apps/system settings. Wake-word detection in the background is not guaranteed on iOS; use supported Siri Shortcuts and user-initiated microphone access.
+- Dark futuristic UI with animated orb, status indicators, conversation history
+- Voice input via Web Speech API (when supported) + text fallback
+- Text-to-speech replies (rate, pitch, voice selection)
+- Local rule-based commands (time, date, help, jokes, open selected sites)
+- Optional **server-side AI proxy** (no private API keys in the browser)
+- Settings: assistant name, language (English / Telugu where the engine allows), voice
+- Conversation history in `localStorage` + export JSON
+- Progressive Web App (manifest, service worker, installable)
+- GitHub Actions: typecheck, lint, test, build, deploy to GitHub Pages
 
-## Deploy with GitHub Actions
+---
 
-The workflow at `.github/workflows/deploy.yml` validates the static app and deploys the repository root to GitHub Pages on pushes to `main`.
+## Architecture
 
-1. Open **Settings → Pages** in this repository.
-2. Set the publishing source to **GitHub Actions** if it is not already selected.
-3. Push a commit to `main`, or manually run **Actions → Build and deploy JARVIS → Run workflow**.
-4. Check the workflow run for its actual result and open the deployment URL shown by the successful deployment.
-
-Expected project-site URL (only after Pages is enabled and deployment succeeds):
-https://yalangisexter-ux.github.io/jarvis-ai-assistant/
-
-## Install on iPhone
-
-1. Open the successfully deployed HTTPS site in Safari.
-2. Tap Share → Add to Home Screen.
-3. Add JARVIS to the Home Screen.
-4. Allow microphone access when prompted, if using voice recognition.
-
-## Local testing
-
-Serve the repository over HTTP rather than opening `index.html` as a file, because service workers require a secure context (HTTPS or localhost). For example, with Python installed:
-
-```sh
-python3 -m http.server 8000
+```
+Browser (React + Vite PWA)
+  ├── Web Speech API (recognition / synthesis)
+  ├── localStorage (settings + history)
+  └── optional HTTPS POST → your AI proxy
+        └── private keys stay on the server
 ```
 
-Then open http://localhost:8000.
+GitHub Pages hosts **only** static assets. It is not a secure backend.
 
-## Next steps for a real AI assistant
+---
 
-Implement a separately deployed backend endpoint that authenticates requests, validates input, rate-limits usage, and calls the chosen AI provider using a server-side secret. Configure the frontend with only the backend's public URL. Do not expose provider secrets in GitHub Pages builds. Add automated unit/browser tests and verify them before describing the app as production-ready.
+## Local development
+
+```bash
+git clone https://github.com/yalangisexter-ux/jarvis-ai-assistant.git
+cd jarvis-ai-assistant
+npm install
+npm run dev
+```
+
+Open the printed URL (usually `http://localhost:5173/jarvis-ai-assistant/`).
+
+### Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Vite dev server |
+| `npm run build` | Typecheck + production build |
+| `npm run preview` | Preview production build |
+| `npm test` | Vitest (jsdom) |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | `tsc -b --noEmit` |
+
+---
+
+## AI configuration (optional)
+
+1. Deploy a **server-side** proxy that accepts `POST` `{ "messages": [{ "role", "content" }] }` and returns `{ "content": "..." }`.
+2. Set `VITE_AI_ENDPOINT` (and optional `VITE_AI_PROVIDER`) as repository **Variables** or local `.env` (see `.env.example`).
+3. Never put private API keys in `VITE_*` variables or the frontend.
+
+Without an endpoint, JARVIS uses the built-in local command engine.
+
+---
+
+## GitHub Pages setup
+
+1. Repository **Settings → Pages** → Source: **GitHub Actions**
+2. Push to `main` or run the workflow manually
+3. Open: `https://yalangisexter-ux.github.io/jarvis-ai-assistant/`
+
+`vite.config.ts` sets `base: '/jarvis-ai-assistant/'` for project pages.
+
+---
+
+## Install on iPhone 15 Plus (PWA)
+
+1. Open the deployed **HTTPS** URL in **Safari**
+2. Tap **Share** → **Add to Home Screen**
+3. Confirm the name and tap **Add**
+4. Launch from the Home Screen icon
+
+This is a PWA, not a native App Store app. Background execution is limited by iOS.
+
+---
+
+## Siri / Shortcuts
+
+Continuous background “Hey JARVIS” is **not** available while Safari/PWA is suspended.
+
+Create a Shortcut: **Open URL** → your JARVIS Pages URL, optionally assign a Siri phrase. Inside the app, tap **Listen** for voice input.
+
+---
+
+## Known iOS limitations
+
+- No always-on wake word while backgrounded
+- Cannot unlock the phone or bypass Face ID
+- Cannot control arbitrary other apps
+- Speech engines depend on Safari / language packs
+
+---
+
+## Security
+
+- No private API keys in the repo or frontend bundle
+- `.env` is gitignored; use `.env.example`
+- History stays in localStorage until exported or cleared
+- Service worker caches the app shell only
+
+---
+
+## License
+
+Use and modify freely for personal projects. Do not use trademarked Iron Man / Marvel branding.

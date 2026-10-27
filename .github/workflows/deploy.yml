@@ -1,4 +1,4 @@
-name: Build and deploy JARVIS
+name: Build and Deploy
 
 on:
   push:
@@ -18,28 +18,46 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository
+      - name: Checkout
         uses: actions/checkout@v4
-      - name: Validate required files
-        run: |
-          test -f index.html
-          test -f manifest.json
-          test -f sw.js
-          test -f icon.svg
-      - name: Validate JSON manifest
-        run: python -m json.tool manifest.json > /dev/null
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
-      - name: Upload static site
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+        env:
+          # Optional: set repository Variables or Secrets and map here.
+          # Do NOT inject private AI API keys into the frontend build.
+          VITE_AI_ENDPOINT: ${{ vars.VITE_AI_ENDPOINT }}
+          VITE_AI_PROVIDER: ${{ vars.VITE_AI_PROVIDER }}
+
+      - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: dist
+
   deploy:
+    needs: build
+    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
     steps:
       - name: Deploy to GitHub Pages
         id: deployment

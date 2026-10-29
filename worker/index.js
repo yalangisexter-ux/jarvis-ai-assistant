@@ -66,14 +66,19 @@ export default {
       return json({ error: "messages must contain 1 to 20 items" }, 400, corsOrigin);
     }
 
-    const messages = body.messages.map((message) => {
-      if (!message || !["user", "assistant"].includes(message.role) ||
-          typeof message.content !== "string" || !message.content.trim() ||
-          message.content.length > MAX_MESSAGE_CHARS) {
-        throw new Error("Invalid message");
-      }
-      return { role: message.role, content: message.content.trim() };
-    });
+    let messages;
+    try {
+      messages = body.messages.map((message) => {
+        if (!message || !["user", "assistant"].includes(message.role) ||
+            typeof message.content !== "string" || !message.content.trim() ||
+            message.content.length > MAX_MESSAGE_CHARS) {
+          throw new Error("Invalid message");
+        }
+        return { role: message.role, content: message.content.trim() };
+      });
+    } catch {
+      return json({ error: "Invalid message format" }, 400, corsOrigin);
+    }
 
     try {
       const result = await env.AI.run(MODEL, {

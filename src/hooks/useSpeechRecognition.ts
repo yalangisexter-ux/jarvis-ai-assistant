@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getSpeechRecognition, isSpeechRecognitionSupported } from '../lib/speech'
 
 export function useSpeechRecognition(lang = 'en-US') {
@@ -11,6 +11,8 @@ export function useSpeechRecognition(lang = 'en-US') {
   const setOnResult = useCallback((fn: (text: string) => void) => {
     onResultRef.current = fn
   }, [])
+
+  const clearError = useCallback(() => setError(null), [])
 
   const stop = useCallback(() => {
     const r = recognitionRef.current
@@ -73,18 +75,19 @@ export function useSpeechRecognition(lang = 'en-US') {
     } catch {
       setError('Could not start listening. Please try again.')
       setListening(false)
+      recognitionRef.current = null
     }
   }, [lang, stop, supported])
 
   useEffect(() => () => stop(), [stop])
 
-  return {
+  return useMemo(() => ({
     supported,
     listening,
     error,
     start,
     stop,
     setOnResult,
-    clearError: () => setError(null),
-  }
+    clearError,
+  }), [supported, listening, error, start, stop, setOnResult, clearError])
 }

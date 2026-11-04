@@ -52,7 +52,7 @@ export default function App() {
       {
         id: uid(),
         role: 'assistant',
-        content: `Hello. ${settings.assistantName} interface is online. Tap the microphone or type a command.`,
+        content: `Good day. ${settings.assistantName} is online and fully operational. Tap the microphone or type a command.`,
         timestamp: Date.now(),
       },
     ]
@@ -178,7 +178,7 @@ export default function App() {
       {
         id: uid(),
         role: 'assistant',
-        content: 'Conversation cleared. How can I help?',
+        content: 'Conversation cleared. Systems remain fully operational. How may I assist you?',
         timestamp: Date.now(),
       },
     ])

@@ -26,15 +26,17 @@ export function getAIConfig() {
 
 function localFallback(userText: string): string {
   const s = userText.trim().toLowerCase()
-  if (!s) return 'I did not catch that. Please try again.'
+  if (!s) return 'I did not catch that, sir. Please try again.'
 
-  if (/^(hi|hello|hey|hey jarvis)\b/.test(s)) {
-    return "Hello. I'm online and ready. How can I help?"
+  if (/^(hi|hello|hey|hey jarvis|good morning|good afternoon|good evening)\b/.test(s)) {
+    return "Good day. JARVIS online and at your service. How may I assist you?"
   }
-  if (s.includes('time')) {
+
+  if (s.includes('time') || s.includes('what time')) {
     return `The current time is ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}.`
   }
-  if (s.includes('date') || s.includes('today')) {
+
+  if (s.includes('date') || s.includes('today') || s.includes('what day')) {
     return `Today is ${new Date().toLocaleDateString(undefined, {
       weekday: 'long',
       year: 'numeric',
@@ -42,15 +44,24 @@ function localFallback(userText: string): string {
       day: 'numeric',
     })}.`
   }
-  if (s.includes('what can you do') || s === 'help') {
-    return 'I can answer questions when an AI endpoint is configured, speak responses, tell the time and date, open selected websites, and manage conversation history. Voice recognition requires Safari microphone permission.'
+
+  if (s.includes('what can you do') || s === 'help' || s.includes('capabilities')) {
+    return 'I can answer questions when the AI proxy is online, speak responses, report time and date, open selected websites, manage conversation history, and help with planning via Mission Control. Voice recognition requires Safari microphone permission. I remain fully operational even offline for basic commands.'
   }
-  if (s.includes('joke')) {
-    return 'Why do programmers prefer dark mode? Because light attracts bugs.'
+
+  if (s.includes('joke') || s.includes('tell me a joke')) {
+    const jokes = [
+      'Why do programmers prefer dark mode? Because light attracts bugs.',
+      'I would tell you a UDP joke, but you might not get it.',
+      'There are only 10 types of people in the world: those who understand binary and those who do not.',
+      'Why did the AI go to therapy? It had too many unresolved dependencies.',
+    ]
+    return jokes[Math.floor(Math.random() * jokes.length)]
   }
+
   if (s.includes('open youtube')) {
     window.open('https://www.youtube.com/', '_blank', 'noopener,noreferrer')
-    return 'Opening YouTube.'
+    return 'Opening YouTube now.'
   }
   if (s.includes('open chatgpt') || s.includes('open chat gpt')) {
     window.open('https://chatgpt.com/', '_blank', 'noopener,noreferrer')
@@ -60,15 +71,28 @@ function localFallback(userText: string): string {
     window.open('https://github.com/', '_blank', 'noopener,noreferrer')
     return 'Opening GitHub.'
   }
+  if (s.includes('open google')) {
+    window.open('https://www.google.com/', '_blank', 'noopener,noreferrer')
+    return 'Opening Google.'
+  }
+
   if (s.includes('clear') && s.includes('history')) {
-    return 'Use the Clear conversation control in the interface to remove local history.'
+    return 'Use the Clear conversation control in the interface to remove local history, sir.'
+  }
+
+  if (s.includes('status') || s.includes('are you online') || s.includes('are you there')) {
+    const config = getAIConfig()
+    return config.configured
+      ? 'All systems operational. AI proxy is connected and ready.'
+      : 'Local systems online. Full AI capabilities require the proxy endpoint to be configured.'
   }
 
   const config = getAIConfig()
   if (!config.configured) {
-    return `I heard: "${userText}". No secure AI endpoint is configured yet. Add a server-side proxy and set VITE_AI_ENDPOINT. Never put private API keys in this public web app.`
+    return `I heard: "${userText}". The secure AI endpoint is not yet configured. I can still handle time, date, basic commands, and opening sites. Configure VITE_AI_ENDPOINT on the server side for full intelligence.`
   }
-  return `I could not reach the AI service. Please check your connection or configuration. (You said: ${userText})`
+
+  return `I could not reach the AI service at the moment. Local systems remain available. You said: ${userText}`
 }
 
 export async function requestAI({

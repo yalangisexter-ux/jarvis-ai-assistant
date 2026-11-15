@@ -57,6 +57,9 @@ export default function App() {
       },
     ]
   })
+  const messagesRef = useRef<Message[]>(messages)
+  messagesRef.current = messages
+
   const [status, setStatus] = useState<AssistantStatus>('ready')
   const [input, setInput] = useState('')
   const [view, setView] = useState<'chat' | 'settings'>('chat')
@@ -64,6 +67,11 @@ export default function App() {
   const [aiInfo] = useState(() => getAIConfig())
   const abortRef = useRef<AbortController | null>(null)
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => () => {
+    abortRef.current?.abort()
+    stopSpeaking()
+  }, [])
 
   const speech = useSpeechRecognition(settings.language)
 
@@ -125,18 +133,23 @@ export default function App() {
         timestamp: Date.now(),
         source,
       }
-      setMessages((prev) => [...prev, userMsg])
+      const historyForAI = [...messagesRef.current, userMsg]
+      messagesRef.current = historyForAI
+      setMessages(historyForAI)
       setStatus('processing')
       setInput('')
 
       const controller = new AbortController()
       abortRef.current = controller
 
-      const historyForAI = [...messages, userMsg]
       const result = await requestAI({
         messages: historyForAI,
         signal: controller.signal,
       })
+
+      // A newer prompt or a clear action may have cancelled this request.
+      // Never let a stale response re-enter the conversation.
+      if (controller.signal.aborted) return
 
       const assistantMsg: Message = {
         id: uid(),
@@ -144,11 +157,11 @@ export default function App() {
         content: result.content,
         timestamp: Date.now(),
       }
-      setMessages((prev) => [...prev, assistantMsg])
+      const nextMessages = [...messagesRef.current, assistantMsg]
+      messagesRef.current = nextMessages
+      setMessages(nextMessages)
 
-      if (result.offline && !aiInfo.configured) {
-        setStatus('offline')
-      }
+      if (result.offline) setStatus('offline')
       speakResponse(result.content)
     },
     [messages, speech, speakResponse, aiInfo.configured],
@@ -174,14 +187,14 @@ export default function App() {
     stopSpeaking()
     abortRef.current?.abort()
     clearHistory()
-    setMessages([
-      {
-        id: uid(),
-        role: 'assistant',
-        content: 'Conversation cleared. Systems remain fully operational. How may I assist you?',
-        timestamp: Date.now(),
-      },
-    ])
+    const clearedMessages: Message[] = [{
+      id: uid(),
+      role: 'assistant',
+      content: 'Conversation cleared. Systems remain fully operational. How may I assist you?',
+      timestamp: Date.now(),
+    }]
+    messagesRef.current = clearedMessages
+    setMessages(clearedMessages)
     setStatus('ready')
   }
 

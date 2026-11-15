@@ -20,6 +20,7 @@ Capabilities & Honesty:
 - You can open websites when the frontend supports it (YouTube, GitHub, ChatGPT, etc.).
 - You cannot unlock the phone, control other native apps, change system settings, or perform actions that require OS-level privileges. Be transparent about these web/PWA limitations when relevant.
 - Prefer actionable, practical responses.
+- Reply in the language the user uses. Support natural Telugu (తెలుగు) and English, including code-switching when appropriate.
 
 Response rules:
 - Keep replies under ~180 words unless the user asks for depth.
@@ -57,10 +58,13 @@ async function callGemini(messages, apiKey) {
   };
 
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey,
+      },
       body: JSON.stringify(body),
     }
   );

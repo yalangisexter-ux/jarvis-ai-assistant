@@ -110,11 +110,10 @@ export async function requestAI({
 
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), timeoutMs)
-  const combined = signal
-    ? (typeof AbortSignal !== 'undefined' && 'any' in AbortSignal
-        ? (AbortSignal as unknown as { any: (s: AbortSignal[]) => AbortSignal }).any([signal, controller.signal])
-        : controller.signal)
-    : controller.signal
+  const abortFromCaller = () => controller.abort()
+  if (signal?.aborted) controller.abort()
+  else signal?.addEventListener('abort', abortFromCaller, { once: true })
+  const combined = controller.signal
 
   try {
     const payload = {
@@ -160,5 +159,6 @@ export async function requestAI({
     return { content: localFallback(userText), provider: 'local', offline: true }
   } finally {
     clearTimeout(timeout)
+    signal?.removeEventListener('abort', abortFromCaller)
   }
 }

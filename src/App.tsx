@@ -18,8 +18,8 @@ import {
 const QUICK_ACTIONS: QuickAction[] = [
   { id: 'time', label: 'Time', command: 'What time is it?' },
   { id: 'help', label: 'Help', command: 'What can you do?' },
-  { id: 'youtube', label: 'YouTube', command: 'Open YouTube' },
-  { id: 'chatgpt', label: 'ChatGPT', command: 'Open ChatGPT' },
+  { id: 'calculator', label: 'Calculate', command: 'calculate 24 * 7' },
+  { id: 'tasks', label: 'My tasks', command: 'show tasks' },
   { id: 'joke', label: 'Joke', command: 'Tell me a joke' },
 ]
 
@@ -383,9 +383,9 @@ export default function App() {
             <div className="label">Limits</div>
             <p className="small">
               This is a web PWA. Microphone access requires permission and an open page.
-              Websites can be opened; controlling other apps, changing system settings, or
-              unlocking the iPhone is not available to a website. Always-on wake-word is not
-              supported while Safari is suspended.
+              JARVIS runs its assistant features locally. External websites and live information
+              are unavailable in Airplane Mode. A PWA cannot control other native apps, change
+              system settings, unlock the iPhone, or listen for a wake word while suspended.
             </p>
             <div className="label">Offline intelligence</div>
             <p className="small">

@@ -38,6 +38,12 @@ export default function FocusPanel() {
   const [filter, setFilter] = useState<'All' | 'Open' | 'Done'>('Open')
 
   useEffect(() => {
+    const syncTasks = () => setTasks(readTasks())
+    window.addEventListener('jarvis:tasks-updated', syncTasks)
+    return () => window.removeEventListener('jarvis:tasks-updated', syncTasks)
+  }, [])
+
+  useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks))
     } catch {

@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: jarvis-build-deploy
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:

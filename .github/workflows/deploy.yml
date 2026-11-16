@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: jarvis-build-deploy
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -40,9 +40,6 @@ jobs:
 
       - name: Build
         run: npm run build
-        env:
-          VITE_AI_ENDPOINT: ${{ vars.VITE_AI_ENDPOINT || 'https://jarvis-ai-proxy.yalangisexter.workers.dev/chat' }}
-          VITE_AI_PROVIDER: ${{ vars.VITE_AI_PROVIDER || 'Gemini + Cloudflare Workers AI' }}
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

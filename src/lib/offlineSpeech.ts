@@ -14,6 +14,8 @@ let loading: Promise<void> | null = null
 env.allowRemoteModels = true
 env.allowLocalModels = false
 env.useBrowserCache = true
+env.useWasmCache = true
+env.backends.onnx.wasm.wasmPaths = `${import.meta.env.BASE_URL}wasm/`
 
 export function isOfflineSpeechReady(): boolean {
   return recognizer !== null

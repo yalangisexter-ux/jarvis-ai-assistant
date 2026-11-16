@@ -40,11 +40,16 @@ export function speak(
   u.rate = options.rate ?? 1
   u.pitch = options.pitch ?? 0.92
   u.lang = options.lang ?? 'en-US'
-  if (options.voiceURI) {
-    const voices = window.speechSynthesis.getVoices()
-    const match = voices.find((v) => v.voiceURI === options.voiceURI)
-    if (match) u.voice = match
+  const voices = window.speechSynthesis.getVoices()
+  const localVoices = voices.filter((voice) => voice.localService)
+  const selected = options.voiceURI
+    ? localVoices.find((voice) => voice.voiceURI === options.voiceURI)
+    : localVoices.find((voice) => voice.lang.toLowerCase() === u.lang.toLowerCase()) ?? localVoices[0]
+  if (!selected) {
+    options.onerror?.()
+    return
   }
+  u.voice = selected
   u.onend = () => options.onend?.()
   u.onerror = () => options.onerror?.()
   window.speechSynthesis.speak(u)
@@ -58,5 +63,5 @@ export function stopSpeaking(): void {
 
 export function listVoices(): SpeechSynthesisVoice[] {
   if (!isSpeechSynthesisSupported()) return []
-  return window.speechSynthesis.getVoices()
+  return window.speechSynthesis.getVoices().filter((voice) => voice.localService)
 }

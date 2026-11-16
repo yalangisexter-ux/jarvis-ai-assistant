@@ -2,6 +2,11 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { getAIConfig, requestAI } from './ai'
 import type { Message } from '../types'
 
+vi.mock('./localModel', () => ({
+  generateLocalResponse: vi.fn().mockResolvedValue(null),
+  isLocalModelReady: vi.fn(() => false),
+}))
+
 describe('offline AI module', () => {
   afterEach(() => {
     vi.unstubAllGlobals()

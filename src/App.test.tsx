@@ -3,6 +3,18 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from './App'
 
+vi.mock('./lib/localModel', () => ({
+  installLocalModel: vi.fn(),
+  isLocalModelReady: vi.fn(() => false),
+  LOCAL_MODEL_ID: 'test-local-model',
+}))
+vi.mock('./lib/offlineSpeech', () => ({
+  installOfflineSpeechModel: vi.fn(),
+  isOfflineSpeechReady: vi.fn(() => false),
+  OFFLINE_SPEECH_MODEL_ID: 'test-local-voice-model',
+  transcribeOfflineAudio: vi.fn(),
+}))
+
 describe('JARVIS App', () => {
   beforeEach(() => {
     localStorage.clear()

@@ -127,6 +127,7 @@ function handleLocalDataCommand(text: string): string | null {
         createdAt: Date.now(),
       })
       localStorage.setItem(key, JSON.stringify(tasks))
+      window.dispatchEvent(new Event('jarvis:tasks-updated'))
       return `Added your task: ${add[1].trim()}.`
     } catch {
       return 'I could not save the task because local browser storage is unavailable.'

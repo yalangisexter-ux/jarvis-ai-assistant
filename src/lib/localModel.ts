@@ -33,10 +33,6 @@ export async function installLocalModel(
 ): Promise<void> {
   if (generator) return
   if (loading) return loading
-  if (typeof navigator !== 'undefined' && !navigator.onLine) {
-    throw new Error('Connect once to download the offline AI model. After installation, JARVIS can run without internet.')
-  }
-
   loading = (async () => {
     const progress_callback = (progress: Progress) => onProgress(progress)
     try {

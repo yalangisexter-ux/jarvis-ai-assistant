@@ -1,6 +1,6 @@
 import { env, pipeline } from '@huggingface/transformers'
 
-export const LOCAL_MODEL_ID = 'onnx-community/Qwen2.5-0.5B-Instruct'
+export const LOCAL_MODEL_ID = 'onnx-community/Qwen3-0.6B-ONNX'
 
 type Progress = {
   status?: string
@@ -8,16 +8,18 @@ type Progress = {
   file?: string
 }
 
+type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string }
+type GeneratedMessage = { role?: string; content?: string }
 type Generator = (
-  prompt: string,
+  messages: ChatMessage[],
   options: Record<string, unknown>,
-) => Promise<Array<{ generated_text: string }>>
+) => Promise<Array<{ generated_text: string | GeneratedMessage[] }>>
 
 let generator: Generator | null = null
 let loading: Promise<void> | null = null
 
-// Model weights are downloaded once and kept in the browser's Cache API.
-// Inference is performed in this browser tab; prompts are never sent to a server.
+// Transformers.js stores fetched model assets in the browser cache.
+// Once the model is installed, inference stays in this device/browser.
 env.allowRemoteModels = true
 env.allowLocalModels = false
 env.useBrowserCache = true
@@ -36,23 +38,21 @@ export async function installLocalModel(
   }
 
   loading = (async () => {
-    const options = {
-      dtype: 'q4' as const,
-      progress_callback: (progress: Progress) => onProgress(progress),
-    }
-
+    const progress_callback = (progress: Progress) => onProgress(progress)
     try {
       const webgpuPipeline = await pipeline('text-generation', LOCAL_MODEL_ID, {
-        ...options,
         device: 'webgpu',
+        dtype: 'q4f16',
+        progress_callback,
       })
       generator = webgpuPipeline as unknown as Generator
     } catch (webgpuError) {
-      onProgress({ status: 'WebGPU unavailable; trying local CPU/WASM runtime.' })
+      onProgress({ status: 'WebGPU unavailable; trying the local CPU/WASM runtime.' })
       try {
         const wasmPipeline = await pipeline('text-generation', LOCAL_MODEL_ID, {
-          ...options,
           device: 'wasm',
+          dtype: 'q4',
+          progress_callback,
         })
         generator = wasmPipeline as unknown as Generator
       } catch (wasmError) {
@@ -73,25 +73,28 @@ export async function generateLocalResponse(
   messages: Array<{ role: 'user' | 'assistant'; content: string }>,
 ): Promise<string | null> {
   if (!generator) return null
-  const recent = messages.slice(-10)
-  const prompt = [
-    '<|im_start|>system',
-    'You are JARVIS, a helpful private offline assistant. Be accurate, concise, practical, and honest about uncertainty. Reply in the same language as the user, including Telugu or English. You have no internet access and must not claim to have checked live information or performed actions outside this device.',
-    '<|im_end|>',
-    ...recent.map((message) => `<|im_start|>${message.role}\n${message.content}\n<|im_end|>`),
-    '<|im_start|>assistant',
-  ].join('\n')
+  const chat: ChatMessage[] = [
+    {
+      role: 'system',
+      content: 'You are JARVIS, a private offline personal assistant. Be accurate, concise, practical and honest about uncertainty. Reply in the same language as the user, including Telugu or English. You have no internet access. Never claim to have checked live information or performed actions outside this device.',
+    },
+    ...messages.slice(-10),
+  ]
 
-  const output = await generator(prompt, {
+  const output = await generator(chat, {
     max_new_tokens: 220,
     temperature: 0.65,
     top_p: 0.9,
     do_sample: true,
     repetition_penalty: 1.08,
   })
-  const generated = output[0]?.generated_text ?? ''
-  const answer = generated.startsWith(prompt)
-    ? generated.slice(prompt.length).trim()
-    : generated.trim()
-  return answer.replace(/<\|im_end\|>[\s\S]*$/, '').trim() || null
+  const generated = output[0]?.generated_text
+  if (typeof generated === 'string') return generated.trim() || null
+  if (Array.isArray(generated)) {
+    const lastAssistant = [...generated].reverse().find(
+      (message) => message.role === 'assistant' && typeof message.content === 'string',
+    )
+    return lastAssistant?.content?.trim() || null
+  }
+  return null
 }

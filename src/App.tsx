@@ -5,6 +5,7 @@ import { useSettings } from './hooks/useSettings'
 import { useSpeechRecognition } from './hooks/useSpeechRecognition'
 import { requestAI } from './lib/ai'
 import { installLocalModel, isLocalModelReady, LOCAL_MODEL_ID } from './lib/localModel'
+import { installOfflineSpeechModel, isOfflineSpeechReady, OFFLINE_SPEECH_MODEL_ID } from './lib/offlineSpeech'
 import { speak, stopSpeaking, listVoices, isSpeechSynthesisSupported } from './lib/speech'
 import {
   clearHistory,
@@ -70,6 +71,10 @@ export default function App() {
   const [modelBusy, setModelBusy] = useState(false)
   const [modelProgress, setModelProgress] = useState('')
   const [modelError, setModelError] = useState<string | null>(null)
+  const [voiceModelReady, setVoiceModelReady] = useState(() => isOfflineSpeechReady())
+  const [voiceModelBusy, setVoiceModelBusy] = useState(false)
+  const [voiceModelProgress, setVoiceModelProgress] = useState('')
+  const [voiceModelError, setVoiceModelError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
 
@@ -421,6 +426,43 @@ export default function App() {
               {modelReady
                 ? 'On-device language model is loaded. Conversation inference runs locally.'
                 : 'Until the model is installed, JARVIS supports local commands and the Focus Board. First-time model download requires internet.'}
+            </p>
+            <divider className="offline-divider" />
+            <p className="small">Offline voice model: {OFFLINE_SPEECH_MODEL_ID}</p>
+            <div className="controls">
+              <button
+                type="button"
+                className="btn"
+                disabled={voiceModelBusy || voiceModelReady}
+                onClick={async () => {
+                  setVoiceModelBusy(true)
+                  setVoiceModelError(null)
+                  setVoiceModelProgress('Preparing offline voice model…')
+                  try {
+                    await installOfflineSpeechModel((progress) => {
+                      const percent = typeof progress.progress === 'number'
+                        ? ` ${Math.round(progress.progress)}%`
+                        : ''
+                      setVoiceModelProgress(`${progress.status ?? 'Downloading voice model'}${percent}`)
+                    })
+                    setVoiceModelReady(true)
+                    setVoiceModelProgress('Offline voice recognition is ready.')
+                  } catch (error) {
+                    setVoiceModelError(error instanceof Error ? error.message : String(error))
+                  } finally {
+                    setVoiceModelBusy(false)
+                  }
+                }}
+              >
+                {voiceModelReady ? 'Offline voice installed' : voiceModelBusy ? 'Installing voice…' : 'Download offline voice model'}
+              </button>
+            </div>
+            {voiceModelProgress && <p className="small" role="status">{voiceModelProgress}</p>}
+            {voiceModelError && <p className="error-text" role="alert">{voiceModelError}</p>}
+            <p className="small">
+              {voiceModelReady
+                ? 'Microphone recordings are transcribed on this device using Whisper. Audio is not uploaded.'
+                : 'Microphone input stays disabled until the local Whisper model is installed. First-time download requires internet.'}
             </p>
           </section>
         </>

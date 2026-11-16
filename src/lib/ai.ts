@@ -24,7 +24,7 @@ export function getAIConfig() {
 
 function calculate(expression: string): string | null {
   const source = expression.replace(/,/g, '').trim()
-  if (!source || !/^[\d\s()+*/.%\-]+$/.test(source)) return null
+  if (!source || !/^[\d\s()+*/.%-]+$/.test(source)) return null
   let index = 0
 
   const number = (): number => {

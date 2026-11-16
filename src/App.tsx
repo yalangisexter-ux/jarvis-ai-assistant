@@ -3,7 +3,8 @@ import type { AssistantStatus, Message, QuickAction } from './types'
 import FocusPanel from './components/FocusPanel'
 import { useSettings } from './hooks/useSettings'
 import { useSpeechRecognition } from './hooks/useSpeechRecognition'
-import { requestAI, getAIConfig } from './lib/ai'
+import { requestAI } from './lib/ai'
+import { installLocalModel, isLocalModelReady, LOCAL_MODEL_ID } from './lib/localModel'
 import { speak, stopSpeaking, listVoices, isSpeechSynthesisSupported } from './lib/speech'
 import {
   clearHistory,
@@ -64,7 +65,10 @@ export default function App() {
   const [input, setInput] = useState('')
   const [view, setView] = useState<'chat' | 'settings'>('chat')
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
-  const [aiInfo] = useState(() => getAIConfig())
+  const [modelReady, setModelReady] = useState(() => isLocalModelReady())
+  const [modelBusy, setModelBusy] = useState(false)
+  const [modelProgress, setModelProgress] = useState('')
+  const [modelError, setModelError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
 
@@ -164,7 +168,7 @@ export default function App() {
       if (result.offline) setStatus('offline')
       speakResponse(result.content)
     },
-    [messages, speech, speakResponse, aiInfo.configured],
+    [speech, speakResponse],
   )
 
   useEffect(() => {
@@ -373,11 +377,45 @@ export default function App() {
               unlocking the iPhone is not available to a website. Always-on wake-word is not
               supported while Safari is suspended.
             </p>
+            <div className="label">Offline intelligence</div>
             <p className="small">
-              AI:{' '}
-              {aiInfo.configured
-                ? `Connected via ${aiInfo.provider} proxy`
-                : 'Local fallback only — configure VITE_AI_ENDPOINT (server-side proxy)'}
+              JARVIS never sends your prompts to a cloud AI service. Install the local model once while connected; the model is then cached for on-device inference.
+            </p>
+            <p className="small">Model: {LOCAL_MODEL_ID}</p>
+            <div className="controls">
+              <button
+                type="button"
+                className="btn primary"
+                disabled={modelBusy || modelReady}
+                onClick={async () => {
+                  setModelBusy(true)
+                  setModelError(null)
+                  setModelProgress('Preparing local model…')
+                  try {
+                    await installLocalModel((progress) => {
+                      const percent = typeof progress.progress === 'number'
+                        ? ` ${Math.round(progress.progress)}%`
+                        : ''
+                      setModelProgress(`${progress.status ?? 'Downloading model'}${percent}`)
+                    })
+                    setModelReady(true)
+                    setModelProgress('Local AI model installed and ready.')
+                  } catch (error) {
+                    setModelError(error instanceof Error ? error.message : String(error))
+                  } finally {
+                    setModelBusy(false)
+                  }
+                }}
+              >
+                {modelReady ? 'Local AI installed' : modelBusy ? 'Installing…' : 'Download offline AI model'}
+              </button>
+            </div>
+            {modelProgress && <p className="small" role="status">{modelProgress}</p>}
+            {modelError && <p className="error-text" role="alert">{modelError}</p>}
+            <p className="small">
+              {modelReady
+                ? 'On-device language model is loaded. Conversation inference runs locally.'
+                : 'Until the model is installed, JARVIS supports local commands and the Focus Board. First-time model download requires internet.'}
             </p>
           </section>
         </>
@@ -496,7 +534,7 @@ export default function App() {
 
       <p className="footer">
         JARVIS PWA · iPhone Safari · GitHub Pages ·{' '}
-        {aiInfo.configured ? 'AI proxy mode' : 'local commands'}
+        {modelReady ? 'on-device AI mode' : 'offline command mode'}
       </p>
     </div>
   )

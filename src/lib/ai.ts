@@ -1,4 +1,5 @@
 import type { Message } from '../types'
+import { generateLocalResponse, isLocalModelReady } from './localModel'
 
 export interface AIRequestOptions {
   messages: Message[]
@@ -12,153 +13,137 @@ export interface AIResponse {
   offline?: boolean
 }
 
-const DEFAULT_TIMEOUT = 25000
-
 export function getAIConfig() {
-  const endpoint = (import.meta.env.VITE_AI_ENDPOINT as string | undefined)?.trim() || null
-  const provider = (import.meta.env.VITE_AI_PROVIDER as string | undefined)?.trim() || 'proxy'
   return {
-    endpoint,
-    provider,
-    configured: Boolean(endpoint),
+    endpoint: null,
+    provider: isLocalModelReady() ? 'on-device Qwen 0.5B' : 'local commands',
+    configured: isLocalModelReady(),
+  }
+}
+
+function calculate(expression: string): string | null {
+  const source = expression.replace(/,/g, '').trim()
+  if (!source || !/^[\d\s()+*/.%\-]+$/.test(source)) return null
+  let index = 0
+
+  const number = (): number => {
+    const start = index
+    while (/[\d.]/.test(source[index] ?? '')) index += 1
+    const value = Number(source.slice(start, index))
+    if (start === index || !Number.isFinite(value)) throw new Error('Invalid number')
+    return value
+  }
+
+  const factor = (): number => {
+    while (source[index] === ' ') index += 1
+    if (source[index] === '+') { index += 1; return factor() }
+    if (source[index] === '-') { index += 1; return -factor() }
+    if (source[index] === '(') {
+      index += 1
+      const value = expressionValue()
+      while (source[index] === ' ') index += 1
+      if (source[index] !== ')') throw new Error('Missing closing bracket')
+      index += 1
+      return value
+    }
+    return number()
+  }
+
+  const term = (): number => {
+    let value = factor()
+    while (true) {
+      while (source[index] === ' ') index += 1
+      const operator = source[index]
+      if (operator !== '*' && operator !== '/' && operator !== '%') break
+      index += 1
+      const right = factor()
+      if ((operator === '/' || operator === '%') && right === 0) throw new Error('Cannot divide by zero')
+      value = operator === '*' ? value * right : operator === '/' ? value / right : value % right
+    }
+    return value
+  }
+
+  const expressionValue = (): number => {
+    let value = term()
+    while (true) {
+      while (source[index] === ' ') index += 1
+      const operator = source[index]
+      if (operator !== '+' && operator !== '-') break
+      index += 1
+      const right = term()
+      value = operator === '+' ? value + right : value - right
+    }
+    return value
+  }
+
+  try {
+    const result = expressionValue()
+    while (source[index] === ' ') index += 1
+    if (index !== source.length || !Number.isFinite(result)) return null
+    return Number(result.toPrecision(12)).toString()
+  } catch {
+    return null
   }
 }
 
 function localFallback(userText: string): string {
   const s = userText.trim().toLowerCase()
-  if (!s) return 'I did not catch that, sir. Please try again.'
-
+  if (!s) return 'I did not catch that. Please try again.'
   if (/^(hi|hello|hey|hey jarvis|good morning|good afternoon|good evening)\b/.test(s)) {
-    return "Good day. JARVIS online and at your service. How may I assist you?"
+    return 'JARVIS is ready. నమస్కారం! How may I assist you?'
   }
-
   if (s.includes('time') || s.includes('what time')) {
     return `The current time is ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}.`
   }
-
   if (s.includes('date') || s.includes('today') || s.includes('what day')) {
-    return `Today is ${new Date().toLocaleDateString(undefined, {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    })}.`
+    return `Today is ${new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.`
   }
-
+  const math = s.match(/(?:calculate|what is|solve)\s+(.+?)[?]?$/i)
+  if (math) {
+    const result = calculate(math[1])
+    if (result !== null) return `The answer is ${result}.`
+  }
   if (s.includes('what can you do') || s === 'help' || s.includes('capabilities')) {
-    return 'I can answer questions when the AI proxy is online, speak responses, report time and date, open selected websites, manage conversation history, and help with planning via Mission Control. Voice recognition requires Safari microphone permission. I remain fully operational even offline for basic commands.'
+    return 'I work offline for time, date, calculations, local notes, conversation history and focus tasks. Install the on-device AI model for open-ended conversations. Voice recognition depends on the offline speech model being installed; system voice availability depends on your device.'
   }
-
-  if (s.includes('joke') || s.includes('tell me a joke')) {
+  if (s.includes('joke')) {
     const jokes = [
       'Why do programmers prefer dark mode? Because light attracts bugs.',
       'I would tell you a UDP joke, but you might not get it.',
-      'There are only 10 types of people in the world: those who understand binary and those who do not.',
-      'Why did the AI go to therapy? It had too many unresolved dependencies.',
+      'There are 10 types of people: those who understand binary and those who do not.',
     ]
     return jokes[Math.floor(Math.random() * jokes.length)]
   }
-
-  if (s.includes('open youtube')) {
-    window.open('https://www.youtube.com/', '_blank', 'noopener,noreferrer')
-    return 'Opening YouTube now.'
-  }
-  if (s.includes('open chatgpt') || s.includes('open chat gpt')) {
-    window.open('https://chatgpt.com/', '_blank', 'noopener,noreferrer')
-    return 'Opening ChatGPT.'
-  }
-  if (s.includes('open github')) {
-    window.open('https://github.com/', '_blank', 'noopener,noreferrer')
-    return 'Opening GitHub.'
-  }
-  if (s.includes('open google')) {
-    window.open('https://www.google.com/', '_blank', 'noopener,noreferrer')
-    return 'Opening Google.'
-  }
-
-  if (s.includes('clear') && s.includes('history')) {
-    return 'Use the Clear conversation control in the interface to remove local history, sir.'
-  }
-
   if (s.includes('status') || s.includes('are you online') || s.includes('are you there')) {
-    const config = getAIConfig()
-    return config.configured
-      ? 'All systems operational. AI proxy is connected and ready.'
-      : 'Local systems online. Full AI capabilities require the proxy endpoint to be configured.'
+    return isLocalModelReady()
+      ? 'All local systems operational. The on-device AI model is loaded. No network connection is required.'
+      : 'JARVIS core is running locally. The on-device language model has not been installed yet.'
   }
-
-  const config = getAIConfig()
-  if (!config.configured) {
-    return `I heard: "${userText}". The secure AI endpoint is not yet configured. I can still handle time, date, basic commands, and opening sites. Configure VITE_AI_ENDPOINT on the server side for full intelligence.`
-  }
-
-  return `I could not reach the AI service at the moment. Local systems remain available. You said: ${userText}`
+  return 'I am running in offline command mode. Install the on-device AI model from the setup panel to enable open-ended local conversations. No message has been sent to a cloud service.'
 }
 
 export async function requestAI({
   messages,
   signal,
-  timeoutMs = DEFAULT_TIMEOUT,
 }: AIRequestOptions): Promise<AIResponse> {
-  const config = getAIConfig()
-  const lastUser = [...messages].reverse().find((m) => m.role === 'user')
+  const lastUser = [...messages].reverse().find((message) => message.role === 'user')
   const userText = lastUser?.content ?? ''
 
-  if (!config.endpoint) {
-    return { content: localFallback(userText), provider: 'local', offline: true }
+  if (signal?.aborted) {
+    return { content: 'Request cancelled.', provider: 'local', offline: true }
   }
 
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), timeoutMs)
-  const abortFromCaller = () => controller.abort()
-  if (signal?.aborted) controller.abort()
-  else signal?.addEventListener('abort', abortFromCaller, { once: true })
-  const combined = controller.signal
-
-  try {
-    const payload = {
-      messages: messages
-        .filter((m) => m.role === 'user' || m.role === 'assistant')
-        .map((m) => ({ role: m.role, content: m.content })),
+  if (isLocalModelReady()) {
+    try {
+      const content = await generateLocalResponse(
+        messages.filter((message) => message.role === 'user' || message.role === 'assistant'),
+      )
+      if (signal?.aborted) return { content: 'Request cancelled.', provider: 'local', offline: true }
+      if (content) return { content, provider: 'on-device Qwen 0.5B', offline: true }
+    } catch (error) {
+      console.warn('Local model inference failed; using offline commands.', error)
     }
-
-    const res = await fetch(config.endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-      signal: combined,
-    })
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => '')
-      throw new Error(`AI request failed (${res.status}): ${text.slice(0, 200)}`)
-    }
-
-    const data = await res.json()
-    const content =
-      data.content ??
-      data.message ??
-      data.choices?.[0]?.message?.content ??
-      data.response ??
-      null
-
-    if (typeof content !== 'string' || !content.trim()) {
-      throw new Error('AI response missing content')
-    }
-
-    return { content: content.trim(), provider: config.provider }
-  } catch (err) {
-    if (err instanceof DOMException && err.name === 'AbortError') {
-      return {
-        content: 'The request timed out or was cancelled. Please try again.',
-        provider: config.provider,
-        offline: true,
-      }
-    }
-    console.warn('AI request error, using local fallback', err)
-    return { content: localFallback(userText), provider: 'local', offline: true }
-  } finally {
-    clearTimeout(timeout)
-    signal?.removeEventListener('abort', abortFromCaller)
   }
+
+  return { content: localFallback(userText), provider: 'local commands', offline: true }
 }

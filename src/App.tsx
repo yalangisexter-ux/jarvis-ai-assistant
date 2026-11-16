@@ -417,7 +417,7 @@ export default function App() {
                   }
                 }}
               >
-                {modelReady ? 'Local AI installed' : modelBusy ? 'Installing…' : 'Download offline AI model'}
+                {modelReady ? 'Local AI installed' : modelBusy ? 'Installing…' : 'Load / download offline AI model'}
               </button>
             </div>
             {modelProgress && <p className="small" role="status">{modelProgress}</p>}
@@ -427,7 +427,7 @@ export default function App() {
                 ? 'On-device language model is loaded. Conversation inference runs locally.'
                 : 'Until the model is installed, JARVIS supports local commands and the Focus Board. First-time model download requires internet.'}
             </p>
-            <divider className="offline-divider" />
+            <div className="offline-divider" />
             <p className="small">Offline voice model: {OFFLINE_SPEECH_MODEL_ID}</p>
             <div className="controls">
               <button
@@ -454,7 +454,7 @@ export default function App() {
                   }
                 }}
               >
-                {voiceModelReady ? 'Offline voice installed' : voiceModelBusy ? 'Installing voice…' : 'Download offline voice model'}
+                {voiceModelReady ? 'Offline voice installed' : voiceModelBusy ? 'Installing voice…' : 'Load / download offline voice model'}
               </button>
             </div>
             {voiceModelProgress && <p className="small" role="status">{voiceModelProgress}</p>}

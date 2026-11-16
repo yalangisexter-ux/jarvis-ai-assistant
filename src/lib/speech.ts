@@ -1,17 +1,3 @@
-export function getSpeechRecognition(): SpeechRecognition | null {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-  if (!SR) return null
-  try {
-    return new SR()
-  } catch {
-    return null
-  }
-}
-
-export function isSpeechRecognitionSupported(): boolean {
-  return Boolean(window.SpeechRecognition || window.webkitSpeechRecognition)
-}
-
 export function isSpeechSynthesisSupported(): boolean {
   return typeof window !== 'undefined' && 'speechSynthesis' in window
 }

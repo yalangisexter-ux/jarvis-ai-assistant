@@ -40,6 +40,12 @@ export function useSpeechRecognition(lang = 'en-US') {
       setError('Could not initialize speech recognition.')
       return
     }
+    const localRecognition = recognition as SpeechRecognition & { processLocally?: boolean }
+    if (!('processLocally' in localRecognition)) {
+      setError('This browser cannot guarantee on-device speech recognition. JARVIS will not send microphone audio to a remote service; use text input or install a local speech model when available.')
+      return
+    }
+    localRecognition.processLocally = true
     recognition.lang = lang
     recognition.interimResults = false
     recognition.maxAlternatives = 1

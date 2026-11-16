@@ -1,5 +1,6 @@
 import type { Message } from '../types'
 import { generateLocalResponse, isLocalModelReady } from './localModel'
+import { loadLocalMemory, saveLocalMemory } from './storage'
 
 export interface AIRequestOptions {
   messages: Message[]
@@ -84,6 +85,68 @@ function calculate(expression: string): string | null {
   } catch {
     return null
   }
+}
+
+type LocalTask = {
+  id: string
+  title: string
+  dueDate: string
+  priority: 'Low' | 'Normal' | 'High'
+  completed: boolean
+  createdAt: number
+}
+
+function handleLocalDataCommand(text: string): string | null {
+  const remember = text.match(/^(?:please )?remember(?: that)?\\s+(.+)$/i)
+  if (remember) {
+    saveLocalMemory(remember[1])
+    return 'I have saved that note on this device only.'
+  }
+
+  if (/^(what do you remember|show my memory|list my notes)$/i.test(text.trim())) {
+    const notes = loadLocalMemory()
+    return notes.length
+      ? `Your local notes:\\n${notes.map((note, index) => `${index + 1}. ${note}`).join('\\n')}`
+      : 'There are no saved notes yet. Say “remember that …” to save one locally.'
+  }
+
+  const add = text.match(/^(?:please )?(?:add|create) (?:a )?task[: ]+(.+)$/i)
+  if (add) {
+    try {
+      const key = 'jarvis_focus_tasks_v1'
+      const parsed: unknown = JSON.parse(localStorage.getItem(key) || '[]')
+      const tasks: LocalTask[] = Array.isArray(parsed) ? parsed as LocalTask[] : []
+      const now = new Date()
+      const dueDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+      tasks.unshift({
+        id: `voice-${Date.now()}`,
+        title: add[1].trim().slice(0, 160),
+        dueDate,
+        priority: 'Normal',
+        completed: false,
+        createdAt: Date.now(),
+      })
+      localStorage.setItem(key, JSON.stringify(tasks))
+      return `Added your task: ${add[1].trim()}.`
+    } catch {
+      return 'I could not save the task because local browser storage is unavailable.'
+    }
+  }
+
+  if (/^(show|list)( my)? tasks$/i.test(text.trim())) {
+    try {
+      const parsed: unknown = JSON.parse(localStorage.getItem('jarvis_focus_tasks_v1') || '[]')
+      const tasks: LocalTask[] = Array.isArray(parsed) ? parsed as LocalTask[] : []
+      const open = tasks.filter((task) => !task.completed)
+      return open.length
+        ? `Your open tasks:\\n${open.slice(0, 15).map((task, index) => `${index + 1}. ${task.title}`).join('\\n')}`
+        : 'You have no open tasks.'
+    } catch {
+      return 'I could not read the local task list.'
+    }
+  }
+
+  return null
 }
 
 function localFallback(userText: string): string {

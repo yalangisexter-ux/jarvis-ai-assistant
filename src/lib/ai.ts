@@ -97,7 +97,7 @@ type LocalTask = {
 }
 
 function handleLocalDataCommand(text: string): string | null {
-  const remember = text.match(/^(?:please )?remember(?: that)?\\s+(.+)$/i)
+  const remember = text.match(/^(?:please )?remember(?: that)?\s+(.+)$/i)
   if (remember) {
     saveLocalMemory(remember[1])
     return 'I have saved that note on this device only.'
@@ -106,7 +106,7 @@ function handleLocalDataCommand(text: string): string | null {
   if (/^(what do you remember|show my memory|list my notes)$/i.test(text.trim())) {
     const notes = loadLocalMemory()
     return notes.length
-      ? `Your local notes:\\n${notes.map((note, index) => `${index + 1}. ${note}`).join('\\n')}`
+      ? `Your local notes:\n${notes.map((note, index) => `${index + 1}. ${note}`).join('\n')}`
       : 'There are no saved notes yet. Say “remember that …” to save one locally.'
   }
 
@@ -139,7 +139,7 @@ function handleLocalDataCommand(text: string): string | null {
       const tasks: LocalTask[] = Array.isArray(parsed) ? parsed as LocalTask[] : []
       const open = tasks.filter((task) => !task.completed)
       return open.length
-        ? `Your open tasks:\\n${open.slice(0, 15).map((task, index) => `${index + 1}. ${task.title}`).join('\\n')}`
+        ? `Your open tasks:\n${open.slice(0, 15).map((task, index) => `${index + 1}. ${task.title}`).join('\n')}`
         : 'You have no open tasks.'
     } catch {
       return 'I could not read the local task list.'
@@ -150,6 +150,8 @@ function handleLocalDataCommand(text: string): string | null {
 }
 
 function localFallback(userText: string): string {
+  const localDataCommand = handleLocalDataCommand(userText)
+  if (localDataCommand) return localDataCommand
   const s = userText.trim().toLowerCase()
   if (!s) return 'I did not catch that. Please try again.'
   if (/^(hi|hello|hey|hey jarvis|good morning|good afternoon|good evening)\b/.test(s)) {

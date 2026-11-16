@@ -11,6 +11,7 @@ import {
   exportHistory,
   loadHistory,
   saveHistory,
+  requestPersistentStorage,
 } from './lib/storage'
 
 const QUICK_ACTIONS: QuickAction[] = [
@@ -53,7 +54,7 @@ export default function App() {
       {
         id: uid(),
         role: 'assistant',
-        content: `Good day. ${settings.assistantName} is online and fully operational. Tap the microphone or type a command.`,
+        content: `${settings.assistantName} local core is ready. Install the offline AI model for open-ended conversations, or type a command.`,
         timestamp: Date.now(),
       },
     ]
@@ -78,6 +79,10 @@ export default function App() {
   }, [])
 
   const speech = useSpeechRecognition(settings.language)
+
+  useEffect(() => {
+    void requestPersistentStorage()
+  }, [])
 
   useEffect(() => {
     saveHistory(messages)
@@ -524,9 +529,9 @@ export default function App() {
             </div>
 
             <p className="small">
-              Preferences and history are stored only in this browser (localStorage). Messages
-              are sent to your AI proxy only when VITE_AI_ENDPOINT is set. No private API keys
-              belong in this frontend.
+              Preferences, conversation history, notes and tasks stay on this device. JARVIS
+              does not send prompts or microphone audio to Gemini, Cloudflare or other cloud AI
+              services. Browser storage can still be cleared by the operating system.
             </p>
           </div>
         </section>

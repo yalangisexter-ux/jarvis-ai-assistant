@@ -23,8 +23,10 @@ let loading: Promise<void> | null = null
 env.allowRemoteModels = true
 env.allowLocalModels = false
 env.useBrowserCache = true
-env.useWasmCache = true
-env.backends.onnx.wasm.wasmPaths = `${import.meta.env.BASE_URL}wasm/`
+;(env as unknown as { useWasmCache?: boolean }).useWasmCache = true
+if (env.backends.onnx.wasm) {
+  env.backends.onnx.wasm.wasmPaths = `${import.meta.env.BASE_URL}wasm/`
+}
 
 export function isLocalModelReady(): boolean {
   return generator !== null

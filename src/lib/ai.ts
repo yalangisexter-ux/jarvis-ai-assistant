@@ -199,6 +199,11 @@ export async function requestAI({
     return { content: 'Request cancelled.', provider: 'local', offline: true }
   }
 
+  const commandResponse = localFallback(userText)
+  if (!commandResponse.startsWith('I am running in offline command mode.')) {
+    return { content: commandResponse, provider: 'local commands', offline: true }
+  }
+
   if (isLocalModelReady()) {
     try {
       const content = await generateLocalResponse(
@@ -211,5 +216,5 @@ export async function requestAI({
     }
   }
 
-  return { content: localFallback(userText), provider: 'local commands', offline: true }
+  return { content: commandResponse, provider: 'local commands', offline: true }
 }

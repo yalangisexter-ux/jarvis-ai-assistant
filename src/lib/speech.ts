@@ -28,9 +28,10 @@ export function speak(
   u.lang = options.lang ?? 'en-US'
   const voices = window.speechSynthesis.getVoices()
   const localVoices = voices.filter((voice) => voice.localService)
+  const language = u.lang.toLowerCase().split('-')[0]
   const selected = options.voiceURI
     ? localVoices.find((voice) => voice.voiceURI === options.voiceURI)
-    : localVoices.find((voice) => voice.lang.toLowerCase() === u.lang.toLowerCase()) ?? localVoices[0]
+    : localVoices.find((voice) => voice.lang.toLowerCase().split('-')[0] === language)
   if (!selected) {
     options.onerror?.()
     return

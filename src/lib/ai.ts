@@ -207,7 +207,10 @@ export async function requestAI({
   if (isLocalModelReady()) {
     try {
       const content = await generateLocalResponse(
-        messages.filter((message) => message.role === 'user' || message.role === 'assistant'),
+        messages.filter(
+          (message): message is Message & { role: 'user' | 'assistant' } =>
+            message.role === 'user' || message.role === 'assistant',
+        ),
       )
       if (signal?.aborted) return { content: 'Request cancelled.', provider: 'local', offline: true }
       if (content) return { content, provider: 'on-device Qwen 0.5B', offline: true }

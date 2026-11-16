@@ -5,6 +5,7 @@ import type { Message } from '../types'
 describe('offline AI module', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
+    localStorage.clear()
   })
 
   it('does not configure a remote AI endpoint', () => {
@@ -50,6 +51,28 @@ describe('offline AI module', () => {
     ]
     const result = await requestAI({ messages })
     expect(result.content).toMatch(/JARVIS|నమస్కారం/i)
+  })
+
+
+  it('saves and recalls notes locally', async () => {
+    const save = await requestAI({
+      messages: [{ id: '1', role: 'user', content: 'remember that my project is called ShadowTrace', timestamp: Date.now() }],
+    })
+    expect(save.content).toMatch(/saved that note/i)
+
+    const recall = await requestAI({
+      messages: [{ id: '2', role: 'user', content: 'what do you remember', timestamp: Date.now() }],
+    })
+    expect(recall.content).toContain('ShadowTrace')
+  })
+
+  it('adds tasks to the same local Focus Board store', async () => {
+    const result = await requestAI({
+      messages: [{ id: '1', role: 'user', content: 'add task test offline JARVIS', timestamp: Date.now() }],
+    })
+    expect(result.content).toMatch(/Added your task/i)
+    expect(JSON.parse(localStorage.getItem('jarvis_focus_tasks_v1') || '[]')[0].title)
+      .toBe('test offline JARVIS')
   })
 
   it('does not call fetch even if a VITE endpoint is present', async () => {

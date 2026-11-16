@@ -5,7 +5,8 @@ JARVIS is a local-first personal assistant PWA for iPhone 15 Plus and desktop br
 ## Offline design
 
 - **Local AI:** Transformers.js runs Qwen3-0.6B in the browser using WebGPU, with a WASM fallback.
-- **One-time model setup:** Download the quantized model while online. Transformers.js caches model assets in the browser cache; after successful installation, inference runs locally.
+- **Local speech recognition:** Whisper tiny runs on-device through Transformers.js after a separate one-time model download. Microphone audio is recorded locally, decoded in-browser and transcribed on-device.
+- **One-time model setup:** Download the quantized AI and voice models while online. Transformers.js caches model assets in the browser cache; use the model controls to load cached weights again after a restart. Inference runs locally.
 - **No cloud AI calls:** The frontend does not call Gemini, Cloudflare Workers AI, or a remote AI proxy. `VITE_AI_ENDPOINT` is not used.
 - **Local commands:** time, date, arithmetic, jokes, status, local notes (`remember that …` / `what do you remember`), and Focus Board tasks (`add task …` / `show tasks`).
 - **Local data:** settings, conversation history, notes and tasks are stored in browser storage. The app requests persistent storage where supported, but browsers/OSes may still clear site data.
@@ -19,7 +20,7 @@ The WebGPU Q4F16 variant is approximately 570 MB; the WASM Q4 fallback can requi
 
 ## Voice and iOS limitations
 
-- Speech recognition is only enabled when the browser explicitly supports local processing (`processLocally`). JARVIS refuses browser recognition modes that may send microphone audio to a remote service.
+- Speech recognition uses a local Whisper model and MediaRecorder; the Web Speech API is not used, so microphone audio is not sent to browser speech servers.
 - Speech output only selects voices marked as local by the operating system. Install an offline voice/language pack in device settings if none are available.
 - Safari/PWA cannot run an always-on wake word while suspended, bypass Face ID, or control arbitrary native apps.
 - iOS may evict browser caches under storage pressure. Keep the app and model cache available; verify the model is installed before relying on airplane-mode use.
@@ -28,10 +29,11 @@ The WebGPU Q4F16 variant is approximately 570 MB; the WASM Q4 fallback can requi
 
 1. Open the HTTPS JARVIS PWA while online.
 2. Add it to the Home Screen in Safari if using iPhone.
-3. Open **Chat → Offline intelligence → Download offline AI model**.
-4. Keep JARVIS open until the model download and initialization finish.
-5. Send a test prompt, then enable Airplane Mode and test again.
-6. Repeat the offline test after an iOS/browser update or if site data has been cleared.
+3. Open **Chat → Offline intelligence → Load / download offline AI model**.
+4. Install the local Whisper model using **Load / download offline voice model**.
+5. Keep JARVIS open until both model downloads and initialization finish.
+6. Send a text prompt and a voice prompt, then enable Airplane Mode and test both again.
+7. Repeat the offline test after an iOS/browser update or if site data has been cleared.
 
 ## Offline verification checklist
 
@@ -40,7 +42,7 @@ The WebGPU Q4F16 variant is approximately 570 MB; the WASM Q4 fallback can requi
 - [ ] A new conversation prompt receives a local model response in Airplane Mode.
 - [ ] Calculator, notes and tasks work offline.
 - [ ] No requests are made to Gemini, Cloudflare or any remote AI endpoint.
-- [ ] Voice recognition is used only when the browser guarantees local processing.
+- [ ] Voice recognition runs through the locally cached Whisper model.
 - [ ] Speech output uses an installed local voice.
 
 ## Development

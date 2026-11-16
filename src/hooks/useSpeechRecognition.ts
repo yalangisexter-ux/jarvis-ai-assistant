@@ -1,11 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { getSpeechRecognition, isSpeechRecognitionSupported } from '../lib/speech'
+import { isOfflineSpeechReady, transcribeOfflineAudio } from '../lib/offlineSpeech'
 
 export function useSpeechRecognition(lang = 'en-US') {
-  const [supported] = useState(() => isSpeechRecognitionSupported())
+  const [supported] = useState(() =>
+    typeof navigator !== 'undefined' &&
+    Boolean(navigator.mediaDevices?.getUserMedia) &&
+    typeof MediaRecorder !== 'undefined' &&
+    typeof AudioContext !== 'undefined',
+  )
   const [listening, setListening] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const recognitionRef = useRef<SpeechRecognition | null>(null)
+  const recorderRef = useRef<MediaRecorder | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+  const chunksRef = useRef<BlobPart[]>([])
   const onResultRef = useRef<(text: string) => void>(() => {})
 
   const setOnResult = useCallback((fn: (text: string) => void) => {
@@ -14,78 +21,84 @@ export function useSpeechRecognition(lang = 'en-US') {
 
   const clearError = useCallback(() => setError(null), [])
 
-  const stop = useCallback(() => {
-    const r = recognitionRef.current
-    if (r) {
-      try {
-        r.onend = null
-        r.stop()
-      } catch {
-        // ignore
-      }
-      recognitionRef.current = null
-    }
+  const releaseMicrophone = useCallback(() => {
+    streamRef.current?.getTracks().forEach((track) => track.stop())
+    streamRef.current = null
+    recorderRef.current = null
     setListening(false)
   }, [])
 
-  const start = useCallback(() => {
+  const stop = useCallback(() => {
+    const recorder = recorderRef.current
+    if (recorder && recorder.state === 'recording') {
+      recorder.stop()
+      return
+    }
+    releaseMicrophone()
+  }, [releaseMicrophone])
+
+  const start = useCallback(async () => {
     setError(null)
     if (!supported) {
-      setError('Speech recognition is not supported in this browser. Use the text input instead.')
+      setError('This browser cannot record microphone audio. Use the text input instead.')
       return
     }
-    stop()
-    const recognition = getSpeechRecognition()
-    if (!recognition) {
-      setError('Could not initialize speech recognition.')
+    if (!isOfflineSpeechReady()) {
+      setError('Install the offline voice model in the Offline intelligence panel before using the microphone.')
       return
-    }
-    const localRecognition = recognition as SpeechRecognition & { processLocally?: boolean }
-    if (!('processLocally' in localRecognition)) {
-      setError('This browser cannot guarantee on-device speech recognition. JARVIS will not send microphone audio to a remote service; use text input or install a local speech model when available.')
-      return
-    }
-    localRecognition.processLocally = true
-    recognition.lang = lang
-    recognition.interimResults = false
-    recognition.maxAlternatives = 1
-    recognition.continuous = false
-
-    recognition.onstart = () => setListening(true)
-    recognition.onend = () => {
-      setListening(false)
-      recognitionRef.current = null
-    }
-    recognition.onerror = (e) => {
-      setListening(false)
-      recognitionRef.current = null
-      const code = e.error
-      if (code === 'not-allowed' || code === 'service-not-allowed') {
-        setError('Microphone permission was denied. Allow microphone access in Safari Settings → Websites → Microphone.')
-      } else if (code === 'no-speech') {
-        setError('No speech detected. Please try again.')
-      } else if (code === 'aborted') {
-        // user cancelled
-      } else {
-        setError(`Voice input issue: ${code}`)
-      }
-    }
-    recognition.onresult = (event) => {
-      const transcript = event.results?.[0]?.[0]?.transcript?.trim()
-      if (transcript) onResultRef.current(transcript)
     }
 
-    recognitionRef.current = recognition
     try {
-      recognition.start()
-    } catch {
-      setError('Could not start listening. Please try again.')
-      setListening(false)
-      recognitionRef.current = null
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 },
+      })
+      streamRef.current = stream
+      chunksRef.current = []
+      const mimeType = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/webm']
+        .find((type) => MediaRecorder.isTypeSupported(type))
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
+      recorderRef.current = recorder
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) chunksRef.current.push(event.data)
+      }
+      recorder.onerror = () => {
+        setError('Microphone recording failed. Please try again.')
+        releaseMicrophone()
+      }
+      recorder.onstop = async () => {
+        const recording = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' })
+        releaseMicrophone()
+        if (!recording.size) {
+          setError('No audio was captured. Please try again.')
+          return
+        }
+        try {
+          const transcript = await transcribeOfflineAudio(recording, lang)
+          if (transcript) onResultRef.current(transcript)
+          else setError('No speech detected. Please try again.')
+        } catch (cause) {
+          setError(cause instanceof Error ? cause.message : 'Offline speech recognition failed.')
+        }
+      }
+      recorder.start()
+      setListening(true)
+    } catch (cause) {
+      releaseMicrophone()
+      const name = cause instanceof DOMException ? cause.name : ''
+      setError(name === 'NotAllowedError'
+        ? 'Microphone permission was denied. Allow microphone access for JARVIS in Safari settings.'
+        : 'Could not start the local microphone recorder. Check microphone access and try again.')
     }
-  }, [lang, stop, supported])
+  }, [lang, releaseMicrophone, supported])
 
-  useEffect(() => () => stop(), [stop])
+  useEffect(() => () => {
+    const recorder = recorderRef.current
+    if (recorder && recorder.state === 'recording') {
+      recorder.onstop = null
+      recorder.stop()
+    }
+    streamRef.current?.getTracks().forEach((track) => track.stop())
+  }, [])
 
   return useMemo(() => ({
     supported,
